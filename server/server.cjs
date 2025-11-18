@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const notesRoutes = require('./routes/notes.js'); // Adjust path as needed
+const notesRoutes = require('./routes/notes.cjs'); // Adjust path as needed
 
 const app = express();
 
