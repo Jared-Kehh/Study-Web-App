@@ -1,15 +1,19 @@
 const express = require('express');
 const cors = require('cors');
-const notesRoutes = require('./routes/notes.cjs'); // Adjust path as needed
+const { connectDB } = require('./connect.cjs');
+const notesRoutes = require('./routes/notes.cjs');
 
 const app = express();
+
+// Connect to MongoDB
+connectDB();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/notes', notesRoutes);
+app.use(notesRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3001;

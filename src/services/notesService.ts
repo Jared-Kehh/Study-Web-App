@@ -1,71 +1,97 @@
-const API_BASE_URL = 'http://localhost:3001/api'; // Adjust to your server URL
+import { Note } from '../hooks/useNotes';
 
-export interface Note {
-  _id?: string;
-  title: string;
-  content: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-  userId?: string; // If you have user authentication
-}
+const API_BASE_URL = 'http://localhost:3001/'; // Fixed: added /api/notes
 
 export const notesService = {
-  // Get all notes
   async getNotes(): Promise<Note[]> {
-    const response = await fetch(`${API_BASE_URL}/notes`);
-    if (!response.ok) {
-      throw new Error('Failed to fetch notes');
+    try {
+      const response = await fetch(API_BASE_URL); // Changed from ${API_BASE_URL}/notes
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const notes = await response.json();
+      console.log('API Response - getNotes:', notes);
+      return notes;
+    } catch (error) {
+      console.error('API Error - getNotes:', error);
+      throw error;
     }
-    return response.json();
   },
 
-  // Create a new note
   async createNote(note: Omit<Note, '_id' | 'createdAt' | 'updatedAt'>): Promise<Note> {
-    const response = await fetch(`${API_BASE_URL}/notes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(note),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to create note');
+    try {
+      const response = await fetch(API_BASE_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(note),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const createdNote = await response.json();
+      console.log('API Response - createNote:', createdNote);
+      return createdNote;
+    } catch (error) {
+      console.error('API Error - createNote:', error);
+      throw error;
     }
-    return response.json();
   },
 
-  // Update an existing note
   async updateNote(id: string, note: Partial<Note>): Promise<Note> {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(note),
-    });
-    if (!response.ok) {
-      throw new Error('Failed to update note');
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(note),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const updatedNote = await response.json();
+      console.log('API Response - updateNote:', updatedNote);
+      return updatedNote;
+    } catch (error) {
+      console.error('API Error - updateNote:', error);
+      throw error;
     }
-    return response.json();
   },
 
-  // Delete a note
   async deleteNote(id: string): Promise<void> {
-    const response = await fetch(`${API_BASE_URL}/notes/${id}`, {
-      method: 'DELETE',
-    });
-    if (!response.ok) {
-      throw new Error('Failed to delete note');
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      console.log('API Response - deleteNote: success');
+    } catch (error) {
+      console.error('API Error - deleteNote:', error);
+      throw error;
     }
   },
 
-  // Search notes
   async searchNotes(query: string): Promise<Note[]> {
-    const response = await fetch(`${API_BASE_URL}/notes/search?q=${encodeURIComponent(query)}`);
-    if (!response.ok) {
-      throw new Error('Failed to search notes');
+    try {
+      const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const notes = await response.json();
+      console.log('API Response - searchNotes:', notes);
+      return notes;
+    } catch (error) {
+      console.error('API Error - searchNotes:', error);
+      throw error;
     }
-    return response.json();
   }
 };

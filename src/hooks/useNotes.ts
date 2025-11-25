@@ -1,6 +1,14 @@
 import { useState, useCallback } from 'react';
-import { Note } from '../types';
 import { notesService } from '../services/notesService';
+
+export interface Note {
+  _id?: string;
+  title: string;
+  content: string;
+  tags: string[];
+  updatedAt: Date;
+  userId?: string;
+}
 
 export const useNotes = () => {
   const [notes, setNotes] = useState<Note[]>([]);
@@ -12,14 +20,18 @@ export const useNotes = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
 
+  // Load notes from MongoDB
   const loadNotes = useCallback(async (): Promise<void> => {
     setLoading(true);
     setError('');
     try {
+      console.log('Loading notes from API...');
       const fetchedNotes = await notesService.getNotes();
+      console.log('Fetched notes:', fetchedNotes);
       setNotes(fetchedNotes);
     } catch (err) {
-      setError('Failed to load notes');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to load notes';
+      setError(errorMessage);
       console.error('Error loading notes:', err);
     } finally {
       setLoading(false);
@@ -27,11 +39,11 @@ export const useNotes = () => {
   }, []);
 
   const createNewNote = useCallback((): void => {
+    console.log('Creating new note...');
     const newNote: Note = {
       title: 'New Note',
       content: '',
       tags: [],
-      createdAt: new Date(),
       updatedAt: new Date()
     };
     setCurrentNote(newNote);
@@ -49,7 +61,10 @@ export const useNotes = () => {
     setLoading(true);
     setError('');
     try {
+      console.log('Saving note...', { noteTitle, noteContent, noteTags });
+      
       if (currentNote && currentNote._id) {
+        // Update existing note
         const updatedNote = await notesService.updateNote(currentNote._id, {
           title: noteTitle,
           content: noteContent,
@@ -59,20 +74,27 @@ export const useNotes = () => {
         setNotes(prev => prev.map(note => 
           note._id === updatedNote._id ? updatedNote : note
         ));
+        console.log('Note updated:', updatedNote);
       } else {
+        // Create new note
         const newNote = await notesService.createNote({
           title: noteTitle,
           content: noteContent,
-          tags: noteTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+          tags: noteTags.split(',').map(tag => tag.trim()).filter(tag => tag)
         });
         setNotes(prev => [...prev, newNote]);
+        console.log('Note created:', newNote);
       }
+      
+      // Clear the editor
       setCurrentNote(null);
       setNoteTitle('');
       setNoteContent('');
       setNoteTags('');
+      
     } catch (err) {
-      setError('Failed to save note');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save note';
+      setError(errorMessage);
       console.error('Error saving note:', err);
     } finally {
       setLoading(false);
@@ -80,6 +102,7 @@ export const useNotes = () => {
   }, [currentNote, noteTitle, noteContent, noteTags]);
 
   const editNote = useCallback((note: Note): void => {
+    console.log('Editing note:', note);
     setCurrentNote(note);
     setNoteTitle(note.title);
     setNoteContent(note.content);
@@ -92,21 +115,32 @@ export const useNotes = () => {
     setLoading(true);
     setError('');
     try {
+      console.log('Deleting note:', noteId);
       await notesService.deleteNote(noteId);
       setNotes(prev => prev.filter(note => note._id !== noteId));
+      
       if (currentNote?._id === noteId) {
         setCurrentNote(null);
         setNoteTitle('');
         setNoteContent('');
         setNoteTags('');
       }
+      console.log('Note deleted successfully');
     } catch (err) {
-      setError('Failed to delete note');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete note';
+      setError(errorMessage);
       console.error('Error deleting note:', err);
     } finally {
       setLoading(false);
     }
   }, [currentNote]);
+
+  const clearCurrentNote = useCallback((): void => {
+    setCurrentNote(null);
+    setNoteTitle('');
+    setNoteContent('');
+    setNoteTags('');
+  }, []);
 
   const filteredNotes = notes.filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -124,20 +158,15 @@ export const useNotes = () => {
     searchTerm,
     loading,
     error,
-    setNoteTitle,
-    setNoteContent,
-    setNoteTags,
-    setSearchTerm,
+    setNoteTitle: useCallback((value: string) => setNoteTitle(value), []),
+    setNoteContent: useCallback((value: string) => setNoteContent(value), []),
+    setNoteTags: useCallback((value: string) => setNoteTags(value), []),
+    setSearchTerm: useCallback((value: string) => setSearchTerm(value), []),
     loadNotes,
     createNewNote,
     saveNote,
     editNote,
     deleteNote,
-    clearCurrentNote: () => {
-      setCurrentNote(null);
-      setNoteTitle('');
-      setNoteContent('');
-      setNoteTags('');
-    }
+    clearCurrentNote,
   };
 };

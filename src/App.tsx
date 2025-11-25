@@ -42,6 +42,17 @@ function App() {
     requestNotificationPermission();
   }, []);
 
+  // Debug logging - MOVED INSIDE component
+  useEffect(() => {
+    console.log('Notes state:', {
+      notes: notes.notes,
+      currentNote: notes.currentNote,
+      loading: notes.loading,
+      error: notes.error,
+      allNotesCount: notes.allNotes.length
+    });
+  }, [notes.notes, notes.currentNote, notes.loading, notes.error, notes.allNotes.length]);
+
   return (
     <div className={`app ${timer.mode}`}>
       <div className="timer-container">
@@ -63,7 +74,15 @@ function App() {
           onResetTimer={timer.resetTimer}
           onSkipSession={timer.skipSession}
           onToggleChat={chat.toggleChat}
-          onToggleNotes={notes.clearCurrentNote}
+          onToggleNotes={() => {
+            // If notes are closed, open with a new note
+            if (notes.currentNote === null) {
+              notes.createNewNote();
+            } else {
+              // If notes are open, close them
+              notes.clearCurrentNote();
+            }
+          }}
         />
         
         <Settings
@@ -77,14 +96,14 @@ function App() {
       </div>
 
       <ChatBot
-  isOpen={chat.isOpen}
-  messages={chat.messages}
-  inputMessage={chat.inputMessage}
-  chatEndRef={chat.chatEndRef}
-  onClose={() => chat.setIsOpen(false)}
-  onInputChange={(e) => handleInputChange(e, chat.setInputMessage)}
-  onSendMessage={chat.handleSendMessage}
-/>
+        isOpen={chat.isOpen}
+        messages={chat.messages}
+        inputMessage={chat.inputMessage}
+        chatEndRef={chat.chatEndRef}
+        onClose={() => chat.setIsOpen(false)}
+        onInputChange={(e) => handleInputChange(e, chat.setInputMessage)}
+        onSendMessage={chat.handleSendMessage}
+      />
 
       <NotesPanel
         isOpen={notes.currentNote !== null}

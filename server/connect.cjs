@@ -10,7 +10,7 @@ let db;
 async function connectDB() {
   try {
     await client.connect();
-    db = client.db('study-timer'); // Your database name
+    db = client.db('studyApp'); // Your database name
     console.log('Connected to MongoDB');
     return db;
   } catch (error) {

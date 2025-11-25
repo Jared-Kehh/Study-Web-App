@@ -3,12 +3,36 @@ const router = express.Router();
 const { ObjectId } = require('mongodb');
 const { getDB } = require('../connect.cjs'); // Adjust path as needed
 
+// Search notes - MUST come before /:id routes
+router.get('/search', async (req, res) => {
+  try {
+    const { q } = req.query;
+    
+    if (!q) {
+      return res.json([]);
+    }
+
+    const db = getDB();
+    const notes = await db.collection('Notes').find({
+      $or: [
+        { title: { $regex: q, $options: 'i' } },
+        { content: { $regex: q, $options: 'i' } },
+        { tags: { $in: [new RegExp(q, 'i')] } }
+      ]
+    }).sort({ updatedAt: -1 }).toArray();
+
+    res.json(notes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to search notes' });
+  }
+});
+
 // Get all notes
 router.get('/', async (req, res) => {
   try {
     const db = getDB();
-    const notes = await db.collection('notes').find().sort({ updatedAt: -1 }).toArray();
-    res.json(notes);
+    const notes = await db.collection('Notes').find().toArray(); // Fixed: added .toArray()
+    res.status(200).json(notes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch notes' });
   }
@@ -24,7 +48,7 @@ router.post('/', async (req, res) => {
     }
 
     const db = getDB();
-    const result = await db.collection('notes').insertOne({
+    const result = await db.collection('Notes').insertOne({
       title,
       content,
       tags: tags || [],
@@ -54,7 +78,7 @@ router.put('/:id', async (req, res) => {
     const { title, content, tags, updatedAt } = req.body;
 
     const db = getDB();
-    const result = await db.collection('notes').findOneAndUpdate(
+    const result = await db.collection('Notes').findOneAndUpdate(
       { _id: new ObjectId(id) },
       { 
         $set: { 
@@ -83,7 +107,7 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
 
     const db = getDB();
-    const result = await db.collection('notes').deleteOne({ _id: new ObjectId(id) });
+    const result = await db.collection('Notes').deleteOne({ _id: new ObjectId(id) });
 
     if (result.deletedCount === 0) {
       return res.status(404).json({ error: 'Note not found' });
@@ -92,30 +116,6 @@ router.delete('/:id', async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete note' });
-  }
-});
-
-// Search notes
-router.get('/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q) {
-      return res.json([]);
-    }
-
-    const db = getDB();
-    const notes = await db.collection('notes').find({
-      $or: [
-        { title: { $regex: q, $options: 'i' } },
-        { content: { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } }
-      ]
-    }).sort({ updatedAt: -1 }).toArray();
-
-    res.json(notes);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to search notes' });
   }
 });
 

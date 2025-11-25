@@ -1,6 +1,6 @@
 import React from 'react';
-import { Note } from '../types';
-import { formatDate, handleInputChange } from '../utils';
+import { Note } from '../hooks/useNotes';
+import { formatDate } from '../utils/helpers';
 
 interface NotesPanelProps {
   isOpen: boolean;
@@ -56,13 +56,18 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
         <button 
           className="close-notes"
           onClick={onClose}
+          disabled={loading}
         >
           ×
         </button>
       </div>
 
       <div className="notes-toolbar">
-        <button className="btn new-note" onClick={onNewNote}>
+        <button 
+          className="btn new-note" 
+          onClick={onNewNote}
+          disabled={loading}
+        >
           + New Note
         </button>
         <input
@@ -71,6 +76,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
           value={searchTerm}
           onChange={onSearchChange}
           className="search-notes"
+          disabled={loading}
         />
         <button 
           className="btn refresh-notes" 
@@ -82,16 +88,18 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
       </div>
 
       <div className="notes-content">
-        {loading && !currentNote ? (
+        {loading ? (
           <div className="loading">Loading notes...</div>
         ) : currentNote ? (
           <div className="note-editor">
+            <h4>{currentNote._id ? 'Edit Note' : 'New Note'}</h4>
             <input
               type="text"
               value={noteTitle}
               onChange={onTitleChange}
               placeholder="Note title..."
               className="note-title-input"
+              disabled={loading}
             />
             <textarea
               value={noteContent}
@@ -99,6 +107,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
               placeholder="Write your notes here..."
               className="note-content-input"
               rows={15}
+              disabled={loading}
             />
             <input
               type="text"
@@ -106,6 +115,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
               onChange={onTagsChange}
               placeholder="Tags (comma separated)..."
               className="note-tags-input"
+              disabled={loading}
             />
             <div className="note-actions">
               <button 
@@ -149,6 +159,7 @@ const NotesPanel: React.FC<NotesPanelProps> = ({
                       <button 
                         className="btn edit-note"
                         onClick={() => onEditNote(note)}
+                        disabled={loading}
                       >
                         Edit
                       </button>
