@@ -1,134 +1,166 @@
-import { useEffect } from 'react';
-import { useTimer } from './hooks/useTimer';
-import { useNotes } from './hooks/useNotes';
-import { useChat } from './hooks/useChat';
-import { processChatMessage } from './services/chatService';
-import { 
-  formatTime, 
-  formatDate, 
-  requestNotificationPermission, 
-  handleSelectChange, 
-  handleInputChange 
-} from './utils/helpers';
-import TimerDisplay from './components/TimerDisplay';
-import Controls from './components/Controls';
-import Settings from './components/Settings';
-import ChatBot from './components/ChatBot';
-import NotesPanel from './components/NotesPanel';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import { User, Note, Message, TabType } from './types';
+import { LoginForm } from './components/Auth/LoginForm';
+import { Header } from './components/Layout/Header';
+import { Navigation } from './components/Layout/Navigation';
+import { StudyTimer } from './components/Timer/StudyTimer';
+import { NoteEditor } from './components/Notes/NoteEditor';
+import { NotesList } from './components/Notes/NotesList';
+import { ChatInterface } from './components/Chatbot/ChatInterface';
+import { notesService } from './services/notesService';
+import { chatService } from './services/chatService.ts';
 
-function App() {
-  const timer = useTimer();
-  const notes = useNotes();
-  const chat = useChat((message: string) => 
-    processChatMessage(message, {
-      mode: timer.mode,
-      isRunning: timer.isRunning,
-      completedSessions: timer.completedSessions,
-      timeLeft: timer.timeLeft,
-      notesCount: notes.allNotes.length,
-      addBotMessage: chat.addBotMessage,
-      createNewNote: notes.createNewNote,
-      openNotes: () => notes.clearCurrentNote(),
-      startTimer: timer.startTimer,
-      pauseTimer: timer.pauseTimer,
-      resetTimer: timer.resetTimer,
-      setStudyTime: timer.setStudyTime,
-      setBreakTime: timer.setBreakTime,
-    })
-  );
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('timer');
+
+  // Notes state
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [noteTitle, setNoteTitle] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+
+  // Chatbot state
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
   useEffect(() => {
-    requestNotificationPermission();
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      const user = JSON.parse(savedUser);
+      setCurrentUser(user);
+      setIsLoggedIn(true);
+      setNotes(notesService.getNotes(user.username));
+    }
   }, []);
 
-  // Debug logging - MOVED INSIDE component
-  useEffect(() => {
-    console.log('Notes state:', {
-      notes: notes.notes,
-      currentNote: notes.currentNote,
-      loading: notes.loading,
-      error: notes.error,
-      allNotesCount: notes.allNotes.length
-    });
-  }, [notes.notes, notes.currentNote, notes.loading, notes.error, notes.allNotes.length]);
+  const handleLogin = (user: User) => {
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+    setNotes(notesService.getNotes(user.username));
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCurrentUser(null);
+    localStorage.removeItem('currentUser');
+    setNotes([]);
+    setMessages([]);
+  };
+
+  const handleSaveNote = () => {
+    if (!noteTitle.trim() || !noteContent.trim() || !currentUser) return;
+
+    if (editingNote) {
+      const updatedNotes = notesService.updateNote(
+        editingNote.id,
+        noteTitle,
+        noteContent,
+        currentUser.username
+      );
+      setNotes(updatedNotes);
+      setEditingNote(null);
+    } else {
+      const updatedNotes = notesService.createNote(
+        noteTitle,
+        noteContent,
+        currentUser.username
+      );
+      setNotes(updatedNotes);
+    }
+
+    setNoteTitle('');
+    setNoteContent('');
+  };
+
+  const handleEditNote = (note: Note) => {
+    setEditingNote(note);
+    setNoteTitle(note.title);
+    setNoteContent(note.content);
+  };
+
+  const handleDeleteNote = (id: string) => {
+    if (!currentUser) return;
+    const updatedNotes = notesService.deleteNote(id, currentUser.username);
+    setNotes(updatedNotes);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingNote(null);
+    setNoteTitle('');
+    setNoteContent('');
+  };
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim() || isLoadingResponse) return;
+
+    const userMessage: Message = { role: 'user', content: inputMessage };
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
+    setInputMessage('');
+    setIsLoadingResponse(true);
+
+    try {
+      const response = await chatService.sendMessage(updatedMessages);
+      const assistantMessage: Message = {
+        role: 'assistant',
+        content: response,
+      };
+      setMessages([...updatedMessages, assistantMessage]);
+    } catch (error) {
+      const errorMessage: Message = {
+        role: 'assistant',
+        content: 'Sorry, I encountered an error. Please try again.',
+      };
+      setMessages([...updatedMessages, errorMessage]);
+    } finally {
+      setIsLoadingResponse(false);
+    }
+  };
+
+  if (!isLoggedIn) {
+    return <LoginForm onLogin={handleLogin} />;
+  }
 
   return (
-    <div className={`app ${timer.mode}`}>
-      <div className="timer-container">
-        <TimerDisplay 
-          timeLeft={timer.timeLeft}
-          mode={timer.mode}
-          completedSessions={timer.completedSessions}
-          notesCount={notes.allNotes.length}
-          error={notes.error}
-        />
-        
-        <Controls
-          isRunning={timer.isRunning}
-          mode={timer.mode}
-          chatOpen={chat.isOpen}
-          notesOpen={notes.currentNote !== null}
-          onStartTimer={timer.startTimer}
-          onPauseTimer={timer.pauseTimer}
-          onResetTimer={timer.resetTimer}
-          onSkipSession={timer.skipSession}
-          onToggleChat={chat.toggleChat}
-          onToggleNotes={() => {
-            // If notes are closed, open with a new note
-            if (notes.currentNote === null) {
-              notes.createNewNote();
-            } else {
-              // If notes are open, close them
-              notes.clearCurrentNote();
-            }
-          }}
-        />
-        
-        <Settings
-          onStudyTimeChange={timer.setStudyTime}
-          onBreakTimeChange={timer.setBreakTime}
-        />
-        
-        <button className="btn notification" onClick={requestNotificationPermission}>
-          Enable Notifications
-        </button>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <Header user={currentUser!} onLogout={handleLogout} />
+      <Navigation activeTab={activeTab} onTabChange={setActiveTab} />
 
-      <ChatBot
-        isOpen={chat.isOpen}
-        messages={chat.messages}
-        inputMessage={chat.inputMessage}
-        chatEndRef={chat.chatEndRef}
-        onClose={() => chat.setIsOpen(false)}
-        onInputChange={(e) => handleInputChange(e, chat.setInputMessage)}
-        onSendMessage={chat.handleSendMessage}
-      />
+      <main className="max-w-7xl mx-auto px-4 py-8">
+        {activeTab === 'timer' && <StudyTimer />}
 
-      <NotesPanel
-        isOpen={notes.currentNote !== null}
-        notes={notes.notes}
-        allNotesCount={notes.allNotes.length}
-        currentNote={notes.currentNote}
-        noteTitle={notes.noteTitle}
-        noteContent={notes.noteContent}
-        noteTags={notes.noteTags}
-        searchTerm={notes.searchTerm}
-        loading={notes.loading}
-        onClose={notes.clearCurrentNote}
-        onSearchChange={(e) => handleInputChange(e, notes.setSearchTerm)}
-        onNewNote={notes.createNewNote}
-        onRefreshNotes={notes.loadNotes}
-        onSaveNote={notes.saveNote}
-        onEditNote={notes.editNote}
-        onDeleteNote={notes.deleteNote}
-        onTitleChange={(e) => handleInputChange(e, notes.setNoteTitle)}
-        onContentChange={(e) => handleInputChange(e, notes.setNoteContent)}
-        onTagsChange={(e) => handleInputChange(e, notes.setNoteTags)}
-        onCancelEdit={notes.clearCurrentNote}
-      />
+        {activeTab === 'notes' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <NoteEditor
+              editingNote={editingNote}
+              noteTitle={noteTitle}
+              noteContent={noteContent}
+              onTitleChange={setNoteTitle}
+              onContentChange={setNoteContent}
+              onSave={handleSaveNote}
+              onCancel={handleCancelEdit}
+            />
+            <NotesList
+              notes={notes}
+              onEdit={handleEditNote}
+              onDelete={handleDeleteNote}
+            />
+          </div>
+        )}
+
+        {activeTab === 'chatbot' && (
+          <ChatInterface
+            messages={messages}
+            inputMessage={inputMessage}
+            isLoading={isLoadingResponse}
+            onInputChange={setInputMessage}
+            onSend={handleSendMessage}
+          />
+        )}
+      </main>
     </div>
   );
 }
-
-export default App;
