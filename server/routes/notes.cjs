@@ -1,121 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const { ObjectId } = require('mongodb');
-const { getDB } = require('../connect.cjs'); // Adjust path as needed
+const Note = require('../models/Note');
+const authMiddleware = require('../middleware/auth');
 
-// Search notes - MUST come before /:id routes
-router.get('/search', async (req, res) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q) {
-      return res.json([]);
-    }
+// All note routes require authentication
+router.use(authMiddleware);
 
-    const db = getDB();
-    const notes = await db.collection('Notes').find({
-      $or: [
-        { title: { $regex: q, $options: 'i' } },
-        { content: { $regex: q, $options: 'i' } },
-        { tags: { $in: [new RegExp(q, 'i')] } }
-      ]
-    }).sort({ updatedAt: -1 }).toArray();
-
-    res.json(notes);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to search notes' });
-  }
-});
-
-// Get all notes
+// GET all notes for logged-in user
 router.get('/', async (req, res) => {
   try {
-    const db = getDB();
-    const notes = await db.collection('Notes').find().toArray(); // Fixed: added .toArray()
-    res.status(200).json(notes);
+    const notes = await Note.find({ userId: req.userId }).sort({ createdAt: -1 });
+    res.json(notes);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch notes' });
+    console.error('Get notes error:', error);
+    res.status(500).json({ error: 'Error fetching notes' });
   }
 });
 
-// Create a new note
+// CREATE new note
 router.post('/', async (req, res) => {
   try {
-    const { title, content, tags, createdAt, updatedAt } = req.body;
-    
+    const { title, content } = req.body;
+
     if (!title || !content) {
       return res.status(400).json({ error: 'Title and content are required' });
     }
 
-    const db = getDB();
-    const result = await db.collection('Notes').insertOne({
+    const note = new Note({
+      userId: req.userId,
       title,
-      content,
-      tags: tags || [],
-      createdAt: new Date(createdAt),
-      updatedAt: new Date(updatedAt)
+      content
     });
 
-    const newNote = {
-      _id: result.insertedId,
-      title,
-      content,
-      tags: tags || [],
-      createdAt: new Date(createdAt),
-      updatedAt: new Date(updatedAt)
-    };
-
-    res.status(201).json(newNote);
+    await note.save();
+    res.status(201).json(note);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to create note' });
+    console.error('Create note error:', error);
+    res.status(500).json({ error: 'Error creating note' });
   }
 });
 
-// Update a note
+// UPDATE note
 router.put('/:id', async (req, res) => {
   try {
+    const { title, content } = req.body;
     const { id } = req.params;
-    const { title, content, tags, updatedAt } = req.body;
 
-    const db = getDB();
-    const result = await db.collection('Notes').findOneAndUpdate(
-      { _id: new ObjectId(id) },
-      { 
-        $set: { 
-          title, 
-          content, 
-          tags: tags || [],
-          updatedAt: new Date(updatedAt)
-        } 
-      },
-      { returnDocument: 'after' }
-    );
-
-    if (!result.value) {
+    // Find note and verify it belongs to the user
+    const note = await Note.findOne({ _id: id, userId: req.userId });
+    
+    if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    res.json(result.value);
+    note.title = title || note.title;
+    note.content = content || note.content;
+    note.updatedAt = Date.now();
+
+    await note.save();
+    res.json(note);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update note' });
+    console.error('Update note error:', error);
+    res.status(500).json({ error: 'Error updating note' });
   }
 });
 
-// Delete a note
+// DELETE note
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    const db = getDB();
-    const result = await db.collection('Notes').deleteOne({ _id: new ObjectId(id) });
-
-    if (result.deletedCount === 0) {
+    // Find and delete note, verify it belongs to the user
+    const note = await Note.findOneAndDelete({ _id: id, userId: req.userId });
+    
+    if (!note) {
       return res.status(404).json({ error: 'Note not found' });
     }
 
-    res.status(204).send();
+    res.json({ message: 'Note deleted successfully', id });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to delete note' });
+    console.error('Delete note error:', error);
+    res.status(500).json({ error: 'Error deleting note' });
   }
 });
 
