@@ -99,14 +99,14 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// VERIFY TOKEN (optional - for checking if user is still logged in)
-router.get('/verify', authMiddleware, async (req, res) => {
-  try {
-    const user = await User.findById(req.userId).select('-password');
-    res.json({ user });
-  } catch (error) {
-    res.status(500).json({ error: 'Error verifying token' });
-  }
-});
+// // VERIFY TOKEN (optional - for checking if user is still logged in)
+// router.get('/verify', authMiddleware, async (req, res) => {
+//   try {
+//     const user = await User.findById(req.userId).select('-password');
+//     res.json({ user });
+//   } catch (error) {
+//     res.status(500).json({ error: 'Error verifying token' });
+//   }
+// });
 
 module.exports = router;
