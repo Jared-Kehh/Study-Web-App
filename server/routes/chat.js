@@ -5,7 +5,7 @@ const router = express.Router();
 
 // Load OpenAI client
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEYS,
+  apiKey: process.env.API_KEY,
 });
 
 router.post('/chat', async (req, res) => {
