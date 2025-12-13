@@ -3,7 +3,7 @@ import { Message } from '../types';
 export const chatService = {
   sendMessage: async (messages: Message[]): Promise<string> => {
     try {
-      const response = await fetch('http://localhost:5000/api/chat', {
+      const response = await fetch('https://study-web-app-idfx.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages }),
