@@ -2,6 +2,7 @@ const express = require('express');
 const OpenAI = require('openai');
 
 const router = express.Router();
+console.log('API_KEY in chat.js:', process.env.API_KEY ? 'EXISTS' : 'MISSING');
 
 // Load OpenAI client
 const client = new OpenAI({
