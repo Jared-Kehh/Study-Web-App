@@ -1,6 +1,6 @@
 import { User } from '../types';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://study-web-app-idfx.onrender.com/api';
 
 export const authService = {
   // ✅ Calls backend API - data saved in MongoDB

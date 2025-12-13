@@ -1,6 +1,6 @@
 import { Note } from '../types';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://study-web-app-idfx.onrender.com/api';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
