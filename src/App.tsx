@@ -37,7 +37,7 @@ export default function App() {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
 
-  // ✅ PERSISTENT TIMER STATE - Always runs in App
+  // PERSISTENT TIMER STATE
   const [timerState, setTimerState] = useState<TimerState>({
     timeLeft: 25 * 60,
     isRunning: false,
@@ -46,7 +46,7 @@ export default function App() {
     breakMinutes: 5
   });
 
-  // ✅ TIMER LOGIC - Runs in App, not in component
+  // TIMER LOGIC
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -82,7 +82,7 @@ export default function App() {
     };
   }, [timerState.isRunning, timerState.timeLeft, timerState.isBreak]);
 
-  // ✅ Check authentication on mount
+  // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       const user = authService.getCurrentUser();
@@ -99,7 +99,7 @@ export default function App() {
     checkAuth();
   }, []);
 
-  // ✅ Load notes from MongoDB backend
+  // Load notes from MongoDB backend
   const loadNotes = async () => {
     const fetchedNotes = await notesService.getNotes();
     setNotes(fetchedNotes);
@@ -127,7 +127,7 @@ export default function App() {
     });
   };
 
-  // ✅ Save note to MongoDB backend
+  // Save note to MongoDB backend
   const handleSaveNote = async () => {
     if (!noteTitle.trim() || !noteContent.trim()) return;
 
@@ -159,7 +159,7 @@ export default function App() {
     setNoteContent(note.content);
   };
 
-  // ✅ Delete note from MongoDB backend
+  // Delete note from MongoDB backend
   const handleDeleteNote = async (id: string) => {
     const success = await notesService.deleteNote(id);
     if (success) {
@@ -257,7 +257,7 @@ export default function App() {
         )}
       </main>
 
-      {/* ✅ MINI TIMER WIDGET - Shows on all tabs when running */}
+      {/* MINI TIMER WIDGET - Shows on all tabs when running */}
       {activeTab !== 'timer' && timerState.isRunning && (
         <div style={{
           position: 'fixed',
