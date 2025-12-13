@@ -2,11 +2,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 require('dotenv').config();
-console.log('JWT_SECRET exists:', !!process.env.JWT_SECRET);
-console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
 
 const authRoutes = require('./routes/auth');
 const notesRoutes = require('./routes/notes');
+const chatRoutes = require('./routes/chat');
 
 const app = express();
 
@@ -22,6 +21,7 @@ mongoose.connect(process.env.MONGO_URI)
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/notes', notesRoutes);
+app.use('/api', chatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
