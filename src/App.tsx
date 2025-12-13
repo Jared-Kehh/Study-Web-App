@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Note, Message, TabType } from './types';
 import { LoginForm } from './components/Auth/LoginForm';
 import { Header } from './components/Layout/Header';
